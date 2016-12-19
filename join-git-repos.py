@@ -250,6 +250,33 @@ def getlog(commands, branch, repo_id):
     # Return the reversed log (oldest commit first).
     return log[::-1]
 
+# Combine logs in a commit-date order.
+def combinelogs(log1, log2):
+    log = []
+
+    # Note: Just using a plain sort operation here would mess up the log if the
+    # commit dates in any of logs are not in a chronological order.
+
+    # As long as there are commits left in both logs, pick the oldest commit
+    # first (sort).
+    idx1 = 0
+    idx2 = 0
+    while idx1 < len(log1) and idx2 < len(log2):
+        if log1[idx1]['time'] < log2[idx2]['time']:
+            log.append(log1[idx1])
+            idx1 = idx1 + 1
+        else:
+            log.append(log2[idx2])
+            idx2 = idx2 + 1
+
+    # Append the remaining tail of whichever log has commits left.
+    if idx1 < len(log1):
+        log.extend(log1[idx1:])
+    if idx2 < len(log2):
+        log.extend(log2[idx2:])
+
+    return log
+
 # Rename all refs.
 def renamerefs(commands, suffix):
     for k in xrange(0, len(commands)):
@@ -284,8 +311,7 @@ def mergerpos(main_commands, secondary_commands, main_spec, secondary_spec):
     secondary_log = getlog(secondary_commands, secondary_spec['branch'], 1)
 
     # Sort the logs into a unified log.
-    combined_log = main_log + secondary_log
-    combined_log.sort(key=lambda x: x['time'])
+    combined_log = combinelogs(main_log, secondary_log)
 
     # Rename all refs in the secondary command set.
     renamerefs(secondary_commands, '-' + secondary_spec['name'])
