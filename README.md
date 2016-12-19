@@ -4,7 +4,7 @@ This is a collection of useful tools for Git.
 
 ## join-git-repos
 
-The purpos of `join-git-repos` is to combine several Git repositories into a
+The purpose of `join-git-repos` is to combine several Git repositories into a
 single repository. It will do the following:
 
   * Import the complete history (including tags and branches) of two or more
