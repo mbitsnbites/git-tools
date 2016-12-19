@@ -278,7 +278,7 @@ def combinelogs(log1, log2):
     return log
 
 # Rename all refs.
-def renamerefs(commands, suffix):
+def renamerefs(commands, suffix = ''):
     for k in xrange(0, len(commands)):
         cmd = commands[k]
 
@@ -286,7 +286,10 @@ def renamerefs(commands, suffix):
         if (space_pos > 0):
             # Handle 'commit', 'reset' and 'tag'.
             if cmd[:space_pos] in ['commit', 'reset', 'tag']:
-                commands[k] = cmd + suffix
+                cmd = cmd.replace('refs/remotes/origin/', 'refs/heads/', 1)
+                if suffix:
+                    cmd = cmd + suffix
+                commands[k] = cmd
 
 # Remap parent commit marks.
 def remapmark(cmd, mark_map):
@@ -420,6 +423,7 @@ print 'Exporting the main repository (' + main_spec['name'] + ')...'
 main_commands = exportrepo(main_spec['path'])
 if move_to_subdirs:
     movetosubdir(main_commands, main_spec['name'])
+renamerefs(main_commands)
 
 # For each secondary repository...
 for secondary in args.secondary:
