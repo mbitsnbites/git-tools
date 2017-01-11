@@ -118,6 +118,13 @@ def importtorepo(repo_root, commands, branch):
     cmd = ['git', '-C', repo_root, 'reset', '--hard', branch]
     subprocess.check_call(cmd)
 
+def prefixpath(prefix, path):
+    if path[0] == '"':
+        assert(path[len(path) - 1] == '"')
+        return '"' + prefix + path[1:]
+    else:
+        return prefix + path
+
 # Move all files to a subdirectory.
 def movetosubdir(commands, subdir):
     if subdir[-1:] != '/':
@@ -128,26 +135,22 @@ def movetosubdir(commands, subdir):
         # Commands that reference paths: 'M', 'D', 'C' and 'R'.
         if cmd_type == 'M ':
             parts = cmd.split(' ')
-            parts[3] = subdir + parts[3]
-            cmd = ' '.join(parts)
+            path = prefixpath(subdir, ' '.join(parts[3:]))
+            cmd = ' '.join(parts[:3]) + ' ' + path
             commands[k] = cmd
         elif cmd_type == 'D ':
-            parts = cmd.split(' ')
-            parts[1] = subdir + parts[1]
-            cmd = ' '.join(parts)
-            commands[k] = cmd
+            path = prefixpath(subdir, cmd[2:])
+            commands[k] = cmd[:2] + path
         elif (cmd_type == 'C ') or (cmd_type == 'R '):
-            # Trickery: First path must be quoted in case it contains spaces.
             if cmd[2] == '"':
-                src_start = 3
-                src_end = cmd.find('"', src_start)
-                src_path = '"' + subdir + cmd[src_start:src_end] + '"'
-                dst_path = subdir + cmd[(src_end + 1):]
+                src_end = cmd.find('"', 3)
+                # TODO(m): Support escaped quotes.
+                assert(src_end >= 0 and cmd[src_end - 1] != '\\')
             else:
-                src_start = cmd.find(' ') + 1
-                src_end = cmd.find(' ', src_start)
-                src_path = subdir + cmd[src_start:src_end]
-                dst_path = subdir + cmd[(src_end + 1):]
+                src_end = cmd.find(' ', 3) - 1
+                assert(src_end >= 0)
+            src_path = prefixpath(subdir, cmd[2:(src_end + 1)])
+            dst_path = prefixpath(subdir, cmd[(src_end + 2):])
             commands[k] = cmd_type + src_path + ' ' + dst_path
 
 # Get the maximum mark number.
