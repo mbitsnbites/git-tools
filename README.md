@@ -23,3 +23,18 @@ single repository. It will do the following:
     `master-bar` in the resulting repository. This minimizes the risk of name
     collisions.
 
+## git-filter-blobs
+
+This tool allows you to modify blobs (file content) for all versions of all
+files in a repository. The result is written to a new repository that is a
+complete clone of the source repository (except that file content may have
+changed).
+
+For example, to run `clang-format` on all C/C++ files in the history (making it
+appear as if the files have been correctly formatted from the beginning), you
+can run:
+
+```bash
+git-filter-blobs.py -f h,hpp,c,cpp path/to/old-repo path/to/new-repo 'clang-format -style="{BasedOnStyle: Chromium, ColumnLimit: 100}"'
+```
+
