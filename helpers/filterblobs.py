@@ -101,7 +101,7 @@ def applyfilter(blob_filter_fun, file_name, blob, data_idx, progress):
     return { 'data_idx': data_idx, 'blob': blob }
 
 # Filter all blobs.
-def filterblobs(src_repo, dst_repo, name_filter_fun, blob_filter_fun):
+def filterblobs(src_repo, dst_repo, name_filter_fun, blob_filter_fun, branch = 'master'):
     # Export the source repository.
     print 'Exporting the source repository (' + src_repo + ')...'
     commands = exportrepo(src_repo)
@@ -181,4 +181,7 @@ def filterblobs(src_repo, dst_repo, name_filter_fun, blob_filter_fun):
         os.makedirs(dst_repo)
     print '\nImporting result to ' + os.path.abspath(dst_repo) + '...'
     importtorepo(dst_repo, commands)
+
+    # Checkout the tip of the main branch.
+    subprocess.check_call(['git', '-C', dst_repo, 'reset', '--hard', branch])
 
