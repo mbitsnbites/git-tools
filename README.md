@@ -38,3 +38,9 @@ can run:
 git-filter-blobs.py -f h,hpp,c,cpp path/to/old-repo path/to/new-repo 'clang-format -style="{BasedOnStyle: Chromium, ColumnLimit: 100}"'
 ```
 
+Note that if the command string includes `%f`, it will be expanded to the
+filename of the blob that is being processed. That can be useful for creating
+more advanced file filters (e.g. to filter based on the folder in which the
+file is located), or to select different tools for different file types,
+for instance.
+

@@ -25,7 +25,7 @@ import argparse, os, shlex, subprocess, sys
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'helpers'))
 from filterblobs import filterblobs
 
-_FILTER_COMMAND = []
+_FILTER_COMMAND = ''
 _FILE_EXT_FILTER = ['c', 'cpp', 'cxx', 'cc', 'h', 'hpp', 'hxx', 'hh']
 _BLOB_SIZE_LIMIT = 200000
 _DEFAULT_BRANCH = 'master'
@@ -43,7 +43,8 @@ def _NAME_FILTER(file_name):
 def _BLOB_FILTER(file_name, blob):
     if len(blob) > _BLOB_SIZE_LIMIT:
         return blob
-    p = subprocess.Popen(_FILTER_COMMAND, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    cmd = shlex.split(_FILTER_COMMAND.replace('%f', file_name))
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
     res = p.communicate(input=blob)
     return res[0]
 
@@ -59,7 +60,7 @@ parser.add_argument('output', metavar='OUTPUT', help='path to the rewritten Git 
 parser.add_argument('filter', metavar='FILTER', help='blob filter command (a string)\nThe command will get the original data blob from STDIN,\nand the rewritten blob is expected on STDOUT.')
 args = parser.parse_args()
 
-_FILTER_COMMAND = shlex.split(args.filter)
+_FILTER_COMMAND = args.filter
 if args.file_filter:
     _FILE_EXT_FILTER = args.file_filter.lower().split(',')
 if args.size_limit:
