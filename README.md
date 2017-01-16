@@ -44,3 +44,13 @@ more advanced file filters (e.g. to filter based on the folder in which the
 file is located), or to select different tools for different file types,
 for instance.
 
+## make-submodule-repo
+
+`make-submodule-repo` will create a new (local) repository with one or more
+submodules. The history of the new repoistory will contain one commit (updating
+the respective submodule SHA) for each commit in the master branch of the
+respective source repository.
+
+This can be useful, for instance, for creating a repository for third party
+dependencies that is to be included in a bigger repo using `join-git-repos`.
+
