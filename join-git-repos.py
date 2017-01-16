@@ -118,6 +118,7 @@ def importtorepo(repo_root, commands, branch):
     cmd = ['git', '-C', repo_root, 'reset', '--hard', branch]
     subprocess.check_call(cmd)
 
+# Prefix a path with a sub directory, taking ":s into account.
 def prefixpath(prefix, path):
     if path[0] == '"':
         assert(path[len(path) - 1] == '"')
@@ -125,21 +126,51 @@ def prefixpath(prefix, path):
     else:
         return prefix + path
 
+# Rewrite a .gitsubmodes file for putting modules in a new subdir.
+def prefixgitsubmodules(prefix, data):
+    nl_pos = data.find('\n')
+    assert(nl_pos >= 0)
+    blob = data[(nl_pos + 1):].replace('path = ', 'path = ' + prefix)
+    return 'data ' + str(len(blob)) + '\n' + blob
+
 # Move all files to a subdirectory.
 def movetosubdir(commands, subdir):
     if subdir[-1:] != '/':
         subdir += '/'
+
+    found_gitmodules = False
+    mark_to_data_idx_map = {}
     for k in xrange(0, len(commands)):
         cmd = commands[k]
-        cmd_type = cmd[:2]
+
+        # Pick up data blobs for .gitmodules.
+        if cmd == 'blob':
+            assert((k + 2) < len(commands))
+            mark = commands[k + 1]
+            assert(mark[:4] == 'mark')
+            mark = mark[5:]
+            mark_to_data_idx_map[mark] = k + 2
+
         # Commands that reference paths: 'M', 'D', 'C' and 'R'.
+        cmd_type = cmd[:2]
         if cmd_type == 'M ':
             parts = cmd.split(' ')
-            path = prefixpath(subdir, ' '.join(parts[3:]))
+            path = ' '.join(parts[3:])
+            if path == '.gitmodules':
+                mark = parts[2]
+                data_idx = mark_to_data_idx_map[mark]
+                commands[data_idx] = prefixgitsubmodules(subdir, commands[data_idx])
+                found_gitmodules = True
+            else:
+                path = prefixpath(subdir, path)
             cmd = ' '.join(parts[:3]) + ' ' + path
             commands[k] = cmd
         elif cmd_type == 'D ':
-            path = prefixpath(subdir, cmd[2:])
+            path = cmd[2:]
+            if path == '.gitmodules':
+                found_gitmodules = True
+            else:
+                path = prefixpath(subdir, path)
             commands[k] = cmd[:2] + path
         elif (cmd_type == 'C ') or (cmd_type == 'R '):
             if cmd[2] == '"':
@@ -152,6 +183,8 @@ def movetosubdir(commands, subdir):
             src_path = prefixpath(subdir, cmd[2:(src_end + 1)])
             dst_path = prefixpath(subdir, cmd[(src_end + 2):])
             commands[k] = cmd_type + src_path + ' ' + dst_path
+
+    return found_gitmodules
 
 # Get the maximum mark number.
 def getmaxmark(commands):
@@ -420,12 +453,19 @@ args = parser.parse_args()
 # Should we append subdirs?
 move_to_subdirs = not args.no_subdirs
 
+# TODO(m): Support more than one repo with submodules (requires merging .gitmodules from several
+# repos, over time, ...).
+already_have_submodules = False
+
 # Export the main repository.
 main_spec = getrepospec(args.main)
 print 'Exporting the main repository (' + main_spec['name'] + ')...'
 main_commands = exportrepo(main_spec['path'])
 if move_to_subdirs:
-    movetosubdir(main_commands, main_spec['name'])
+    found_submodules = movetosubdir(main_commands, main_spec['name'])
+    if found_submodules:
+        assert(not already_have_submodules)
+        already_have_submodules = True
 renamerefs(main_commands)
 
 # For each secondary repository...
@@ -434,7 +474,10 @@ for secondary in args.secondary:
     print '\nExporting ' + secondary_spec['name'] + '...'
     secondary_commands = exportrepo(secondary_spec['path'])
     if move_to_subdirs:
-        movetosubdir(secondary_commands, secondary_spec['name'])
+        found_submodules = movetosubdir(secondary_commands, secondary_spec['name'])
+        if found_submodules:
+            assert(not already_have_submodules)
+            already_have_submodules = True
 
     print '\nMerging repositories...'
     main_commands = mergerpos(main_commands, secondary_commands, main_spec, secondary_spec)
