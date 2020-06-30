@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 100
+
+# Ignore some warnings - mostly things that are handled by black.
+ignore = E203,
+         E402,
+         W503,
+
