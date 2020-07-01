@@ -108,7 +108,8 @@ def makeimport(exp):
 # Export a repository.
 def exportrepo(repo_root):
     cmd = ["git", "-C", repo_root, "fast-export", "--all"]
-    return parseexport(subprocess.check_output(cmd))
+    export_str = subprocess.check_output(cmd, encoding="iso-8859-1")
+    return parseexport(export_str)
 
 
 # Import to a new repository.
@@ -122,7 +123,7 @@ def importtorepo(repo_root, commands, branch):
 
     # Import the fast-import string into the repo.
     p = subprocess.Popen(["git", "-C", repo_root, "fast-import"], stdin=subprocess.PIPE)
-    p.communicate(input=import_str)
+    p.communicate(input=import_str.encode("iso-8859-1"))
 
     # Checkout the tip of the main branch.
     cmd = ["git", "-C", repo_root, "reset", "--hard", branch]
