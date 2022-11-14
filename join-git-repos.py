@@ -268,11 +268,15 @@ def getlog(commands, branch, repo_id):
             # Find the tip of the branch. (Is directly intruduced by a commit command)
             elif (cmd[:7] == b'commit ') and (cmd[7:] in ref_names):
                 cmd2_idx = k + 2
+                time_stamp = None
                 # 'author' (optional) comes after 'mark'.
                 if commands[cmd2_idx][:7] == b'author ':
+                    if use_author_date:
+                      time_stamp = extracttimestamp(commands[cmd2_idx])
                     cmd2_idx = cmd2_idx + 1
                 # 'committer' (required) comes after 'author'.
-                time_stamp = extracttimestamp(commands[cmd2_idx])
+                if time_stamp == None:
+                  time_stamp = extracttimestamp(commands[cmd2_idx])
                 cmd2_idx = cmd2_idx + 2
 
                 log.append({'mark': commands[k + 1], 'time': time_stamp, 'id': repo_id})
@@ -284,11 +288,15 @@ def getlog(commands, branch, repo_id):
         # Find the next parent commit.
         elif (cmd[:7] == b'commit ') and (commands[k + 1] == parent_mark):
             cmd2_idx = k + 2
+            time_stamp = None
             # 'author' (optional) comes after 'mark'.
             if commands[cmd2_idx][:7] == b'author ':
+                if use_author_date:
+                  time_stamp = extracttimestamp(commands[cmd2_idx])
                 cmd2_idx = cmd2_idx + 1
             # 'committer' (required) comes after 'author'.
-            time_stamp = extracttimestamp(commands[cmd2_idx])
+            if time_stamp == None:
+              time_stamp = extracttimestamp(commands[cmd2_idx])
             cmd2_idx = cmd2_idx + 2
 
             log.append({ 'mark': commands[k + 1], 'time': time_stamp, 'id': repo_id })
@@ -303,12 +311,12 @@ def getlog(commands, branch, repo_id):
     # Return the reversed log (oldest commit first).
     return log[::-1]
 
-# Combine logs in a commit-date order.
+# Combine logs in order of dates.
 def combinelogs(log1, log2):
     log = []
 
     # Note: Just using a plain sort operation here would mess up the log if the
-    # commit dates in any of logs are not in a chronological order.
+    # dates in any of logs are not in a chronological order.
 
     # As long as there are commits left in both logs, pick the oldest commit
     # first (sort).
@@ -462,11 +470,15 @@ parser = argparse.ArgumentParser(
            '                 (default: last part of the path)\n' +
            '    mainbranch - The main branch of the repository.\n' +
            '                 (default: master)\n'))
+parser.add_argument('-a', '--author-date', action='store_true', help='use author date instead of commit date')
 parser.add_argument('-n', '--no-subdirs', action='store_true', help='do not create subdirectories')
 parser.add_argument('-o', '--output', metavar='OUTPUT', required='True', help='output directory for the stiched Git repo')
 parser.add_argument('main', metavar='MAIN', help='main repository specification')
 parser.add_argument('secondary', metavar='SECONDARY', nargs='+', help='secondary repository specification')
 args = parser.parse_args()
+
+# Should we use author date instead of commit date?
+use_author_date = args.author_date
 
 # Should we append subdirs?
 move_to_subdirs = not args.no_subdirs
