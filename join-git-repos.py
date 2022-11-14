@@ -288,11 +288,15 @@ def getlog(commands, branch, repo_id):
         # Find the next parent commit.
         elif (cmd[:7] == b'commit ') and (commands[k + 1] == parent_mark):
             cmd2_idx = k + 2
+            time_stamp = None
             # 'author' (optional) comes after 'mark'.
             if commands[cmd2_idx][:7] == b'author ':
+                if use_author_date:
+                  time_stamp = extracttimestamp(commands[cmd2_idx])
                 cmd2_idx = cmd2_idx + 1
             # 'committer' (required) comes after 'author'.
-            time_stamp = extracttimestamp(commands[cmd2_idx])
+            if time_stamp == None:
+              time_stamp = extracttimestamp(commands[cmd2_idx])
             cmd2_idx = cmd2_idx + 2
 
             log.append({ 'mark': commands[k + 1], 'time': time_stamp, 'id': repo_id })
