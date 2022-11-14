@@ -42,7 +42,7 @@ def getrepospec(spec):
         branch = spec[(sep + 1):]
         spec = spec[:sep]
     else:
-        branch = 'master'
+        branch = 'main'
 
     # Extract the name.
     sep = spec.find(',')
@@ -461,7 +461,7 @@ parser = argparse.ArgumentParser(
            '    name       - Name of the repository (used for the subdir).\n' +
            '                 (default: last part of the path)\n' +
            '    mainbranch - The main branch of the repository.\n' +
-           '                 (default: master)\n'))
+           '                 (default: main)\n'))
 parser.add_argument('-n', '--no-subdirs', action='store_true', help='do not create subdirectories')
 parser.add_argument('-o', '--output', metavar='OUTPUT', required='True', help='output directory for the stiched Git repo')
 parser.add_argument('main', metavar='MAIN', help='main repository specification')
