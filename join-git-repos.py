@@ -446,7 +446,7 @@ def mergerpos(main_commands, secondary_commands, main_spec, secondary_spec):
 # Handle the program arguments.
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description='Generate a new repository with stiched histories from two or more repositories.',
+    description='Generate a new repository with stitched histories from two or more repositories.',
     epilog=('A repository specification is given on the following format:\n' +
            '  path[,name][:mainbranch]\n' +
            '    path       - Root of the Git repository.\n' +
@@ -455,7 +455,7 @@ parser = argparse.ArgumentParser(
            '    mainbranch - The main branch of the repository.\n' +
            '                 (default: master)\n'))
 parser.add_argument('-n', '--no-subdirs', action='store_true', help='do not create subdirectories')
-parser.add_argument('-o', '--output', metavar='OUTPUT', required='True', help='output directory for the stiched Git repo')
+parser.add_argument('-o', '--output', metavar='OUTPUT', required='True', help='output directory for the stitched Git repo')
 parser.add_argument('main', metavar='MAIN', help='main repository specification')
 parser.add_argument('secondary', metavar='SECONDARY', nargs='+', help='secondary repository specification')
 args = parser.parse_args()
@@ -492,7 +492,7 @@ for secondary in args.secondary:
     print('\nMerging repositories...')
     main_commands = mergerpos(main_commands, secondary_commands, main_spec, secondary_spec)
 
-# Create the new repository and import the stiched histories.
+# Create the new repository and import the stitched histories.
 out_root = args.output
 if os.path.isdir(out_root):
     cleandir(out_root)
