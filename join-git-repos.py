@@ -98,11 +98,11 @@ def makeimport(exp):
 
 # Export a repository.
 def exportrepo(repo_root):
-    cmd = ['git', '-C', repo_root, 'fast-export', '--all']
+    cmd = ['git', '-C', repo_root, 'fast-export', '--all', '--show-original-ids']
     return parseexport(subprocess.check_output(cmd))
 
 # Import to a new repository.
-def importtorepo(repo_root, commands, branch):
+def importtorepo(repo_root, commands, branch, use_git_filter_repo):
     # Generate a string from the export description.
     import_str = makeimport(commands)
 
@@ -110,9 +110,15 @@ def importtorepo(repo_root, commands, branch):
     cmd = ['git', 'init', repo_root]
     subprocess.check_call(cmd)
 
-    # Import the fast-import string into the repo.
-    p = subprocess.Popen(['git', '-C', repo_root, 'fast-import'], stdin=subprocess.PIPE)
-    p.communicate(input=import_str)
+    if(use_git_filter_repo):
+        # Import the fast-import string into the repo using git-filter-repo
+        # This will update hash references in commit logs.
+        p = subprocess.Popen(['git-filter-repo', '--target', repo_root, '--stdin'], stdin=subprocess.PIPE)
+        p.communicate(input=import_str)
+    else:
+        # Import the fast-import string into the repo.
+        p = subprocess.Popen(['git', '-C', repo_root, 'fast-import'], stdin=subprocess.PIPE)
+        p.communicate(input=import_str)
 
     # Checkout the tip of the main branch.
     cmd = ['git', '-C', repo_root, 'reset', '--hard', branch]
@@ -260,6 +266,9 @@ def getlog(commands, branch, repo_id):
             # Find the tip of the branch. (Is directly intruduced by a commit command)
             elif (cmd[:7] == b'commit ') and (cmd[7:] in ref_names):
                 cmd2_idx = k + 2
+                # 'original-oid' (optional) comes after 'mark'.
+                if commands[cmd2_idx][:13] == b'original-oid ':
+                    cmd2_idx = cmd2_idx + 1
                 # 'author' (optional) comes after 'mark'.
                 if commands[cmd2_idx][:7] == b'author ':
                     cmd2_idx = cmd2_idx + 1
@@ -276,6 +285,9 @@ def getlog(commands, branch, repo_id):
         # Find the next parent commit.
         elif (cmd[:7] == b'commit ') and (commands[k + 1] == parent_mark):
             cmd2_idx = k + 2
+            # 'original-oid' (optional) comes after 'mark'.
+            if commands[cmd2_idx][:13] == b'original-oid ':
+                cmd2_idx = cmd2_idx + 1
             # 'author' (optional) comes after 'mark'.
             if commands[cmd2_idx][:7] == b'author ':
                 cmd2_idx = cmd2_idx + 1
@@ -415,7 +427,7 @@ def mergerpos(main_commands, secondary_commands, main_spec, secondary_spec):
                     cmd = src_commands[i]
                     space_pos = cmd.find(b' ')
                     cmd_type = cmd[:space_pos] if space_pos > 0 else cmd
-                    if not (cmd_type in [b'mark', b'author', b'committer', b'data', b'from', b'merge', b'M', b'D', b'C', b'R', b'deleteall', b'N']):
+                    if not (cmd_type in [b'mark', b'original-oid', b'author', b'committer', b'data', b'from', b'merge', b'M', b'D', b'C', b'R', b'deleteall', b'N']): #,
                         source['idx'] = i
                         processed_all_commands = False
                         break
@@ -455,6 +467,7 @@ parser = argparse.ArgumentParser(
            '    mainbranch - The main branch of the repository.\n' +
            '                 (default: master)\n'))
 parser.add_argument('-n', '--no-subdirs', action='store_true', help='do not create subdirectories')
+parser.add_argument('-p', '--use-git-filter-repo', action='store_true', help='preserve hash references in commit messages by using git-filter-repo to import the stiched repo')
 parser.add_argument('-o', '--output', metavar='OUTPUT', required='True', help='output directory for the stitched Git repo')
 parser.add_argument('main', metavar='MAIN', help='main repository specification')
 parser.add_argument('secondary', metavar='SECONDARY', nargs='+', help='secondary repository specification')
@@ -462,6 +475,7 @@ args = parser.parse_args()
 
 # Should we append subdirs?
 move_to_subdirs = not args.no_subdirs
+use_git_filter_repo = args.use_git_filter_repo
 
 # TODO(m): Support more than one repo with submodules (requires merging .gitmodules from several
 # repos, over time, ...).
@@ -499,5 +513,5 @@ if os.path.isdir(out_root):
 else:
     os.makedirs(out_root)
 print('\nImporting result to ' + os.path.abspath(out_root) + '...')
-importtorepo(out_root, main_commands, main_spec['branch'])
+importtorepo(out_root, main_commands, main_spec['branch'], use_git_filter_repo)
 
