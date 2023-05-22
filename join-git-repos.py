@@ -236,14 +236,6 @@ def extracttimestamp(cmd):
     # TODO(m): There must be a native Python way of doing this.
     parts = time_stamp.split(b' ')
     t = float(parts[0].decode('utf-8'))
-    if len(parts[1]) == 5:
-        h = float(parts[1][1:3].decode('utf-8'))
-        m = float(parts[1][3:5].decode('utf-8'))
-        dt = 60 * (m + 60 * h)
-        if parts[1][0] == b'+':
-            t = t - dt
-        else:
-            t = t + dt
     return t
 
 # Get the log for a specific branch (first-child traversal).
