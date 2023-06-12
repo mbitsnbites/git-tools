@@ -408,6 +408,7 @@ def mergerpos(main_commands, secondary_commands, main_spec, secondary_spec):
         processed_all_commands = True
         first_commit_of_branch = (source['idx'] == 0)
         mark_before_break = b''
+        expectingTagFromMark = False
         for k in range(source['idx'], len(src_commands)):
             if (not log_done) and (src_commands[k] == next_mark):
                 # Sanity check: The previous command must be a 'commit'.
@@ -445,8 +446,24 @@ def mergerpos(main_commands, secondary_commands, main_spec, secondary_spec):
 
                 break
             else:
+                # Handle the tail end of the fast-export file.
                 # Append the command to the command queue, with parent remapping.
-                commands.append(remapmark(src_commands[k], mark_map))
+                # However, tags are a special case and should not have marks remapped.
+                if expectingTagFromMark:
+                    commands.append(src_commands[k])
+                    expectingTagFromMark = False
+                else:
+                    commands.append(remapmark(src_commands[k], mark_map))
+                
+                # check for "tag" and prepare to skip remapping the next mark
+                # this assumes that tag command is followed directly by from :mark
+                cmd = src_commands[k]
+                space_pos = cmd.find(b' ')
+                cmd_type = cmd[:space_pos] if space_pos > 0 else cmd
+                if (cmd_type == b'tag'):
+                    # If it's a tag, the next command will be a from :mark that we don't want to remap
+                    expectingTagFromMark = True
+                
 
         if processed_all_commands:
             source['idx'] = len(src_commands)
