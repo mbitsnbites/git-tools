@@ -126,8 +126,8 @@ def importtorepo(repo_root, commands, branch, use_git_filter_repo):
 
 # Prefix a path with a sub directory, taking ":s into account.
 def prefixpath(prefix, path):
-    if path[0] == b'"':
-        assert(path[len(path) - 1] == b'"')
+    if path.startswith(b'"'):
+        assert(path.endswith(b'"'))
         return b'"' + prefix + path[1:]
     else:
         return prefix + path
